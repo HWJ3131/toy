@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>도형뽑기</title>
+  <style>
+    body {
+      text-align: center;
+      background: #f0f0f0;
+      font-family: sans-serif;
+    }
+    canvas {
+      border: 3px solid #333;
+      background: #fff;
+      display: block;
+      margin: 10px auto;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #controls {
+      margin-top: 10px;
+    }
+    #timer {
+      font-size: 20px;
+      margin-top: 10px;
+    }
+    #inventory {
+      margin-top: 15px;
+      padding: 10px;
+      background: #fff;
+      border: 2px solid #888;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .toy-shape {
+      width: 80px;
+      height: 80px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎮 다양한 도형 뽑기</h1>
+  <div id="timer">⏱️ 남은 시간: <span id="time">60</span>초</div>
+  <canvas id="gameCanvas" width="400" height="500"></canvas>
+  <div id="controls">
+    <button id="leftBtn">⬅ 왼쪽</button>
+    <button id="moveBtn">⬇ 내려가기</button>
+    <button id="rightBtn">➡ 오른쪽</button>
+  </div>
+  <h3>📆 뽑은 도형</h3>
+  <div id="inventory"></div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const leftBtn = document.getElementById("leftBtn");
+    const rightBtn = document.getElementById("rightBtn");
+    const moveBtn = document.getElementById("moveBtn");
+    const timeText = document.getElementById("time");
+    const inventory = document.getElementById("inventory");
+
+    let clawX = 160;
+    let clawY = 0;
+    const clawWidth = 60;
+    const clawHeight = 30;
+    let clawState = 'idle';
+    let clawGrabbedToy = null;
+    let gameOver = false;
+
+    const shapes = ['circle', 'square', 'triangle'];
+    const colors = ['#ff6b6b', '#4dabf7', '#69db7c'];
+
+    const toys = Array.from({ length: 6 }, () => {
+      return {
+        x: Math.random() * 300 + 30,
+        y: 420,
+        width: 80,
+        height: 80,
+        shape: shapes[Math.floor(Math.random() * shapes.length)],
+        color: colors[Math.floor(Math.random() * colors.length)],
+        grabbed: false
+      };
+    });
+
+    function drawClaw() {
+      ctx.strokeStyle = "#444";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(clawX + clawWidth / 2, 0);
+      ctx.lineTo(clawX + clawWidth / 2, clawY);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(clawX + clawWidth / 2, clawY);
+      ctx.lineTo(clawX + clawWidth / 2 - 20, clawY + clawHeight);
+      ctx.moveTo(clawX + clawWidth / 2, clawY);
+      ctx.lineTo(clawX + clawWidth / 2 + 20, clawY + clawHeight);
+      ctx.stroke();
+    }
+
+    function drawToy(toy, x, y) {
+      ctx.fillStyle = toy.color;
+      if (toy.shape === 'circle') {
+        ctx.beginPath();
+        ctx.arc(x + toy.width / 2, y + toy.height / 2, toy.width / 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (toy.shape === 'square') {
+        ctx.fillRect(x, y, toy.width, toy.height);
+      } else if (toy.shape === 'triangle') {
+        ctx.beginPath();
+        ctx.moveTo(x + toy.width / 2, y);
+        ctx.lineTo(x, y + toy.height);
+        ctx.lineTo(x + toy.width, y + toy.height);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    function drawToys() {
+      toys.forEach(toy => {
+        if (!toy.grabbed) {
+          drawToy(toy, toy.x, toy.y);
+        }
+      });
+
+      if (clawGrabbedToy) {
+        drawToy(clawGrabbedToy, clawX + clawWidth / 2 - 40, clawY + clawHeight);
+      }
+    }
+
+    function updateClaw() {
+      if (clawState === 'down') {
+        clawY += 5;
+        if (clawY >= 420) {
+          clawY = 420;
+          const caught = toys.find(toy =>
+            !toy.grabbed && clawX + clawWidth / 2 > toy.x && clawX + clawWidth / 2 < toy.x + toy.width
+          );
+          if (caught) {
+            caught.grabbed = true;
+            clawGrabbedToy = caught;
+          }
+          clawState = 'grab';
+          setTimeout(() => clawState = 'up', 500);
+        }
+      } else if (clawState === 'up') {
+        clawY -= 5;
+        if (clawY <= 0) {
+          clawY = 0;
+          clawState = 'idle';
+          if (clawGrabbedToy) {
+            addToInventory(clawGrabbedToy);
+            clawGrabbedToy = null;
+          }
+        }
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawClaw();
+      drawToys();
+    }
+
+    function gameLoop() {
+      if (!gameOver) {
+        updateClaw();
+        draw();
+        requestAnimationFrame(gameLoop);
+      }
+    }
+
+    moveBtn.addEventListener("click", () => {
+      if (clawState === 'idle' && !gameOver) clawState = 'down';
+    });
+
+    leftBtn.addEventListener("click", () => {
+      if (clawState === 'idle' && clawX > 20) clawX -= 20;
+    });
+
+    rightBtn.addEventListener("click", () => {
+      if (clawState === 'idle' && clawX < canvas.width - clawWidth - 20) clawX += 20;
+    });
+
+    function addToInventory(toy) {
+      const div = document.createElement('div');
+      div.className = 'toy-shape';
+      div.style.backgroundColor = toy.color;
+      div.title = toy.shape;
+      div.style.border = '1px solid #555';
+      div.style.display = 'inline-block';
+      div.style.margin = '4px';
+      inventory.appendChild(div);
+    }
+
+    let remainingTime = 60;
+    const countdown = setInterval(() => {
+      remainingTime--;
+      timeText.textContent = remainingTime;
+      if (remainingTime <= 0) {
+        clearInterval(countdown);
+        gameOver = true;
+        alert("\u23f1\ufe0f \uc2dc\uac04\uc774 \uc885\ub8cc\ub418\uc5c8\uc2b5\ub2c8\ub2e4!");
+      }
+    }, 1000);
+
+    gameLoop();
+  </script>
+</body>
+</html>
