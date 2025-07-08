@@ -6,14 +6,17 @@
   <style>
     body {
       text-align: center;
-      background: #f0f0f0;
+      background: #e0e0e0; /* 연한 회색으로 변경 */
       font-family: sans-serif;
     }
     canvas {
-      border: 3px solid #333;
+      border: 3px solid blue; /* 파란 테두리로 변경 */
       background: #fff;
       display: block;
       margin: 10px auto;
+    }
+    h1 {
+      color: #2ecc71; /* 에메랄드 색상으로 변경 */
     }
     button {
       margin: 5px;
@@ -73,7 +76,6 @@
     let clawGrabbedToy = null;
     let gameOver = false;
 
-    const shapes = ['circle', 'square', 'triangle'];
     const colors = ['#ff6b6b', '#4dabf7', '#69db7c'];
 
     const toys = Array.from({ length: 6 }, () => {
@@ -82,7 +84,7 @@
         y: 420,
         width: 80,
         height: 80,
-        shape: shapes[Math.floor(Math.random() * shapes.length)],
+        circles: Math.floor(Math.random() * 3) + 1,
         color: colors[Math.floor(Math.random() * colors.length)],
         grabbed: false
       };
@@ -106,18 +108,19 @@
 
     function drawToy(toy, x, y) {
       ctx.fillStyle = toy.color;
-      if (toy.shape === 'circle') {
+      ctx.fillRect(x, y, toy.width, toy.height);
+
+      const padding = 10;
+      const availableWidth = toy.width - 2 * padding;
+      const radius = Math.min((availableWidth / toy.circles) / 2, (toy.height - 2 * padding) / 2);
+      const spacing = availableWidth / toy.circles;
+
+      ctx.fillStyle = "#fff";
+      for (let i = 0; i < toy.circles; i++) {
+        const cx = x + padding + spacing * i + spacing / 2;
+        const cy = y + toy.height / 2;
         ctx.beginPath();
-        ctx.arc(x + toy.width / 2, y + toy.height / 2, toy.width / 2, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (toy.shape === 'square') {
-        ctx.fillRect(x, y, toy.width, toy.height);
-      } else if (toy.shape === 'triangle') {
-        ctx.beginPath();
-        ctx.moveTo(x + toy.width / 2, y);
-        ctx.lineTo(x, y + toy.height);
-        ctx.lineTo(x + toy.width, y + toy.height);
-        ctx.closePath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -192,7 +195,7 @@
       const div = document.createElement('div');
       div.className = 'toy-shape';
       div.style.backgroundColor = toy.color;
-      div.title = toy.shape;
+      div.title = `${toy.circles}개의 원 포함`;
       div.style.border = '1px solid #555';
       div.style.display = 'inline-block';
       div.style.margin = '4px';
@@ -206,7 +209,7 @@
       if (remainingTime <= 0) {
         clearInterval(countdown);
         gameOver = true;
-        alert("\u23f1\ufe0f \uc2dc\uac04\uc774 \uc885\ub8cc\ub418\uc5c8\uc2b5\ub2c8\ub2e4!");
+        alert("⏱️ 시간이 종료되었습니다!");
       }
     }, 1000);
 
